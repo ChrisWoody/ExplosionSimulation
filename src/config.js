@@ -40,6 +40,10 @@ export const config = {
     gradientTop: '#0f0c29',
     gradientBottom: '#302b63',
 
+    // Camera
+    autoOrbit: true,
+    orbitSpeed: 0.3,
+
     // Playback
     loop: false,
     loopDelay: 1.0

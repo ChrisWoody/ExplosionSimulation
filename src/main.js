@@ -17,7 +17,7 @@ if (!gl) {
 
 // ─── Init Three.js scene + post-processing ───
 const canvasContainer = document.getElementById('canvas-container');
-const { scene, camera, renderer, composer, backgroundMesh, passes } = createScene(canvasContainer);
+const { scene, camera, renderer, composer, backgroundMesh, passes, controls } = createScene(canvasContainer);
 
 // ─── Init particle systems ───
 const fireParticles = new FireParticles(scene);
@@ -115,6 +115,23 @@ bgTopCtrl.onChange(() => updateBackground(backgroundMesh, config));
 bgBottomCtrl.onChange(() => updateBackground(backgroundMesh, config));
 updateBgVisibility();
 
+// -- Camera --
+const cameraFolder = gui.addFolder('Camera');
+const autoOrbitCtrl = cameraFolder.add(config, 'autoOrbit').name('Auto-orbit');
+const orbitSpeedCtrl = cameraFolder.add(config, 'orbitSpeed', 0.05, 2.0, 0.05).name('Orbit speed');
+
+function updateOrbitVisibility() {
+    if (config.autoOrbit) {
+        orbitSpeedCtrl.show();
+        controls.enableRotate = false;
+    } else {
+        orbitSpeedCtrl.hide();
+        controls.enableRotate = true;
+    }
+}
+autoOrbitCtrl.onChange(updateOrbitVisibility);
+updateOrbitVisibility();
+
 // -- Playback --
 const playbackFolder = gui.addFolder('Playback');
 const loopCtrl = playbackFolder.add(config, 'loop').name('Loop explosion');
@@ -150,6 +167,10 @@ window.addEventListener('resize', () => {
     resizeScene(camera, renderer, composer, passes, canvasContainer);
 });
 
+// ─── Auto-orbit state ───
+let orbitAngle = 0;
+const orbitRadius = 20;
+
 // ─── Animation loop ───
 const clock = new THREE.Clock();
 
@@ -157,6 +178,14 @@ function animate() {
     requestAnimationFrame(animate);
     const dt = Math.min(clock.getDelta(), 0.1);
 
+    if (config.autoOrbit) {
+        orbitAngle += config.orbitSpeed * dt;
+        camera.position.x = Math.sin(orbitAngle) * orbitRadius;
+        camera.position.z = Math.cos(orbitAngle) * orbitRadius;
+        camera.lookAt(controls.target);
+    }
+
+    controls.update();
     explosion.update(dt);
     composer.render();
 }

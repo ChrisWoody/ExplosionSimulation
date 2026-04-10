@@ -58,11 +58,12 @@ The following passes are applied **in order** via Three.js `EffectComposer`:
 | Pass | Shader | Description | Configurable? |
 |---|---|---|---|
 | 1. **Scene render** | Default | Render particles + overlays to an offscreen buffer | — |
-| 2. **Outline / Ink Edge** | Sobel or Laplacian edge detection on depth + normal buffers | Draws dark outlines around bright regions to mimic hand-drawn ink | Thickness (px) |
-| 3. **Cel-Shading (Posterise)** | Quantise colour channels into N discrete steps | Creates flat anime colour banding | Number of levels (3–8) |
-| 4. **Bloom / Glow** | Dual-pass Kawase or Gaussian blur on bright pixels | Bright energy glow around the fireball core | Strength, radius, threshold |
-| 5. **Screen Shake** | Translate UV offset with decay | Camera/viewport jitter on explosion trigger | Intensity, duration |
-| 6. **Tone mapping + output** | Final gamma / exposure | — | — |
+| 2. **Shockwave distortion** | Screen-space radial UV offset | Distorts pixels outward from explosion centre in an expanding ring | Intensity (driven by explosion lifecycle) |
+| 3. **Outline / Ink Edge** | Sobel or Laplacian edge detection on depth + normal buffers | Draws dark outlines around bright regions to mimic hand-drawn ink | Thickness (px) |
+| 4. **Cel-Shading (Posterise)** | Quantise colour channels into N discrete steps | Creates flat anime colour banding | Number of levels (3–8) |
+| 5. **Bloom / Glow** | UnrealBloomPass (Gaussian blur on bright pixels) | Bright energy glow around the fireball core | Strength |
+| 6. **Screen Shake** | Translate UV offset with decay | Camera/viewport jitter on explosion trigger | Intensity, duration |
+| 7. **Tone mapping + output** | Final gamma / exposure | — | — |
 
 ### 3.4 Drawn Overlay Effects
 
@@ -73,12 +74,15 @@ These are **non-particle geometry** rendered in the scene or as screen-space ove
 | **Shockwave ring** | Expanding torus / ring mesh or screen-space distortion shader | Expands outward from explosion centre; distorts pixels behind it; fades with distance |
 | **Radial speed lines** | Screen-space lines radiating from explosion centre | Appear on trigger, taper in opacity over ~0.3 s; anime "impact frame" feel |
 | **Debris / spark trails** | Small particle trails with billboard sprites | Fly outward, leave short fading trails (ribbon or dashed line) |
-| **Smoke trail** | Large soft billboard sprites, low alpha | Rise slowly after fireball dissipates; cel-shade tinted |
+| **Smoke trail** | Large soft billboard sprites, low alpha | Rise slowly after fireball dissipates; cel-shade tinted (implemented as a separate particle system) |
+| **Heat rays** | Tapered cylindrical beam geometries radiating outward | Bright energy beams that fire outward from explosion centre with staggered timing; fade over lifetime |
 
 ### 3.5 Background
 
 - Default: dark solid colour (`#1a1a2e`).
 - Configurable: solid colour picker **or** vertical linear gradient (two colour pickers).
+- Rendered as a large inverted sphere (skybox) so the background is visible from all camera angles during orbit.
+- A subtle procedural star field is composited onto the background to provide visual parallax feedback when the camera orbits.
 
 ---
 
@@ -129,6 +133,7 @@ Selecting a preset auto-fills the three colour pickers. Selecting `Custom` unloc
 | **Screen shake** | Checkbox | ✅ On |
 | **Debris / sparks** | Checkbox | ✅ On |
 | **Smoke trail** | Checkbox | ✅ On |
+| **Heat rays** | Checkbox | ✅ On |
 
 #### 4.2.5 Effects Intensity
 
@@ -147,7 +152,18 @@ Selecting a preset auto-fills the three colour pickers. Selecting `Custom` unloc
 | **Gradient top colour** | Colour picker (visible when Gradient) | `#0f0c29` |
 | **Gradient bottom colour** | Colour picker (visible when Gradient) | `#302b63` |
 
-#### 4.2.7 Playback
+#### 4.2.7 Camera
+
+| Control | Type | Range / Options | Default |
+|---|---|---|---|
+| **Auto-orbit** | Checkbox | — | ✅ On |
+| **Orbit speed** | Slider (visible when Auto-orbit is on) | 0.05 – 2.0 | 0.3 |
+
+When **Auto-orbit** is enabled the camera continuously orbits around the explosion origin at the configured speed. The user cannot drag to rotate while auto-orbit is active.
+
+When **Auto-orbit** is disabled, the user can click-and-drag on the canvas to manually orbit around the explosion point (powered by Three.js `OrbitControls`). Panning is disabled; zoom via scroll is allowed within a clamped range.
+
+#### 4.2.8 Playback
 
 | Control | Type | Default |
 |---|---|---|
@@ -215,26 +231,16 @@ ExplosionSimulation/
 ├── style.css               # Menu panel + layout styles
 ├── src/
 │   ├── main.js             # App bootstrap — init scene, renderer, menu, event wiring
-│   ├── scene.js            # Three.js scene, camera, lights setup
-│   ├── particles.js        # Particle system (BufferGeometry, attributes, update loop)
+│   ├── scene.js            # Three.js scene, camera, OrbitControls, post-processing setup
+│   ├── particles.js        # Particle systems: fire (additive) + smoke (normal blend)
 │   ├── explosion.js        # Explosion lifecycle state machine (trigger, phases, loop)
-│   ├── overlays.js         # Shockwave ring, speed lines, debris, smoke
+│   ├── overlays.js         # Shockwave ring, speed lines, debris, heat rays
 │   ├── config.js           # Shared config object + defaults
-│   └── shaders/
-│       ├── particle.vert   # Particle vertex shader
-│       ├── particle.frag   # Particle fragment shader
-│       ├── outline.frag    # Edge-detection post-process
-│       ├── celshade.frag   # Posterisation post-process
-│       ├── bloom.frag      # Bloom post-process
-│       ├── shake.frag      # Screen-shake post-process
-│       └── shockwave.frag  # Shockwave distortion
-├── assets/
-│   └── textures/
-│       ├── fire-sprite.png     # Stylised anime fireball sprite
-│       ├── smoke-sprite.png    # Stylised anime smoke sprite
-│       ├── spark-sprite.png    # Small bright spark
-│       └── speedline.png       # Radial line texture
-└── REQUIREMENTS.md         # This file
+│   ├── shaders.js          # All GLSL shaders as exported template-literal strings
+│   └── textures.js         # Procedurally generated sprite textures (fire, smoke, spark)
+├── REQUIREMENTS.md         # This file
+├── README.md               # Project overview and getting-started guide
+└── LICENSE                 # MIT licence
 ```
 
 ---
@@ -257,7 +263,9 @@ ExplosionSimulation/
 3. All controls in §4.2 are present and functional — changing a value and re-triggering produces a visibly different explosion.
 4. The **Loop** checkbox causes the explosion to repeat automatically with the configured delay.
 5. The post-processing pipeline (outline, cel-shading, bloom, screen shake) is visibly active and each effect can be independently toggled off.
-6. The shockwave ring, speed lines, debris, and smoke overlays are visible and toggleable.
+6. The shockwave ring, speed lines, debris, smoke, and heat ray overlays are visible and toggleable.
 7. Performance stays at ≥ 60 FPS with default settings at 1080p on a mid-range GPU.
 8. The canvas and menu resize correctly when the browser window is resized.
 9. A clear error message is shown if WebGL 2.0 is not available.
+10. With **Auto-orbit** enabled (default), the camera continuously orbits the explosion point at the configured speed.
+11. With **Auto-orbit** disabled, the user can click-and-drag on the canvas to manually orbit the explosion point; panning is disabled.

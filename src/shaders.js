@@ -138,7 +138,7 @@ void main() {
 }
 `;
 
-// ─── Background gradient fragment ───
+// ─── Background gradient fragment (with procedural star field) ───
 export const backgroundFrag = /* glsl */ `
 uniform int uMode;
 uniform vec3 uSolidColor;
@@ -146,6 +146,28 @@ uniform vec3 uGradientTop;
 uniform vec3 uGradientBottom;
 
 varying vec2 vUv;
+varying vec3 vWorldPos;
+
+// Simple pseudo-random hash
+float hash(vec2 p) {
+    p = fract(p * vec2(443.8975, 397.2973));
+    p += dot(p, p + 19.19);
+    return fract(p.x * p.y);
+}
+
+// Star field based on world position
+float stars(vec3 dir) {
+    // Use spherical coordinates for a stable star pattern
+    vec2 cell = floor(dir.xy * 80.0 + dir.z * 60.0);
+    float rnd = hash(cell);
+    vec2 offset = fract(dir.xy * 80.0 + dir.z * 60.0) - 0.5;
+    float d = length(offset);
+    // Only ~4% of cells get a star
+    float star = smoothstep(0.06, 0.01, d) * step(0.96, rnd);
+    // Vary brightness
+    star *= 0.3 + 0.7 * hash(cell + 7.7);
+    return star;
+}
 
 void main() {
     vec3 color;
@@ -154,14 +176,24 @@ void main() {
     } else {
         color = mix(uGradientBottom, uGradientTop, vUv.y);
     }
+
+    // Add subtle star dots
+    vec3 dir = normalize(vWorldPos);
+    float s = stars(dir);
+    // Tint stars slightly toward white/blue
+    vec3 starColor = mix(vec3(0.8, 0.85, 1.0), vec3(1.0), hash(dir.xy * 31.0));
+    color += starColor * s * 0.35;
+
     gl_FragColor = vec4(color, 1.0);
 }
 `;
 
 export const backgroundVert = /* glsl */ `
 varying vec2 vUv;
+varying vec3 vWorldPos;
 void main() {
     vUv = uv;
+    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;

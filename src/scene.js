@@ -4,6 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 import {
     passthroughVert,
@@ -15,9 +16,9 @@ import {
     backgroundFrag
 } from './shaders.js';
 
-// ─── Background mesh ───
+// ─── Background mesh (skybox sphere) ───
 function createBackgroundMesh() {
-    const geometry = new THREE.PlaneGeometry(200, 200);
+    const geometry = new THREE.SphereGeometry(100, 64, 32);
     const material = new THREE.ShaderMaterial({
         uniforms: {
             uMode: { value: 0 },
@@ -27,11 +28,10 @@ function createBackgroundMesh() {
         },
         vertexShader: backgroundVert,
         fragmentShader: backgroundFrag,
-        depthWrite: false,
-        depthTest: false
+        side: THREE.BackSide,
+        depthWrite: false
     });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.z = -80;
     mesh.renderOrder = -1000;
     return mesh;
 }
@@ -105,6 +105,15 @@ export function createScene(canvasContainer) {
     camera.position.set(0, 0, 20);
     camera.lookAt(0, 0, 0);
 
+    // Orbit controls (manual drag to orbit around explosion point)
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(0, 0, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.enablePan = false;
+    controls.minDistance = 5;
+    controls.maxDistance = 60;
+
     // Background mesh
     const backgroundMesh = createBackgroundMesh();
     scene.add(backgroundMesh);
@@ -155,7 +164,7 @@ export function createScene(canvasContainer) {
         shake: shakePass
     };
 
-    return { scene, camera, renderer, composer, backgroundMesh, passes };
+    return { scene, camera, renderer, composer, backgroundMesh, passes, controls };
 }
 
 // ─── Update background ───
