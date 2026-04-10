@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Explosion Simulator</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/",
+            "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <div id="panel">
+            <div id="panel-header">
+                <h1>&#x1F4A5; Explosion Config</h1>
+            </div>
+            <div id="gui-container"></div>
+            <div id="panel-footer">
+                <button id="explode-btn">&#x1F4A5; EXPLODE!</button>
+            </div>
+        </div>
+        <button id="panel-toggle" title="Toggle panel">&#9776;</button>
+        <div id="canvas-container">
+            <canvas id="webgl-canvas"></canvas>
+        </div>
+    </div>
+
+    <div id="webgl-error" style="display:none;">
+        <h2>WebGL 2.0 Required</h2>
+        <p>Your browser does not support WebGL 2.0. Please use a modern browser such as Chrome 90+, Firefox 90+, Edge 90+, or Safari 15+.</p>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a12;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #e0e0e0;
+}
+
+/* ─── Layout ─── */
+#app {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* ─── Side panel ─── */
+#panel {
+    width: 300px;
+    min-width: 300px;
+    height: 100%;
+    background: #12121e;
+    border-right: 2px solid #ff4500;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: min-width 0.3s ease, width 0.3s ease, opacity 0.3s ease;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+}
+
+#panel.collapsed {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    border-right: none;
+}
+
+#panel-header {
+    padding: 14px 16px;
+    text-align: center;
+    background: linear-gradient(180deg, #1e1a30, #12121e);
+    border-bottom: 1px solid rgba(255, 69, 0, 0.25);
+    flex-shrink: 0;
+}
+
+#panel-header h1 {
+    font-size: 17px;
+    color: #ff6b35;
+    text-shadow: 0 0 12px rgba(255, 107, 53, 0.4);
+    letter-spacing: 0.5px;
+}
+
+/* GUI container fills available space */
+#gui-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ─── lil-gui overrides ─── */
+#gui-container .lil-gui {
+    --background-color: #12121e;
+    --widget-color: #252540;
+    --focus-color: #ff4500;
+    --hover-color: #30305a;
+    --text-color: #d0d0d0;
+    --title-background-color: #1a1a30;
+    --title-text-color: #ff8c50;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-size: 11px;
+    --name-width: 48%;
+    --slider-knob-width: 3px;
+    --slider-input-width: 22%;
+    width: 100% !important;
+    border: none;
+    margin: 0;
+}
+
+#gui-container .lil-gui .title {
+    border-bottom: 1px solid rgba(255, 69, 0, 0.15);
+}
+
+#gui-container .lil-gui.root > .title {
+    display: none;
+}
+
+/* ─── Explode button footer ─── */
+#panel-footer {
+    flex-shrink: 0;
+    padding: 12px 14px;
+    background: #12121e;
+    border-top: 1px solid rgba(255, 69, 0, 0.2);
+}
+
+#explode-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 10px;
+    background: linear-gradient(135deg, #ff3c00, #ff6b35);
+    border: 2px solid #ff8c00;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-shadow: 0 1px 6px rgba(255, 60, 0, 0.7);
+    box-shadow: 0 0 18px rgba(255, 69, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: box-shadow 0.15s ease, transform 0.1s ease;
+    user-select: none;
+}
+
+#explode-btn:hover {
+    box-shadow: 0 0 30px rgba(255, 69, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+#explode-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 0 12px rgba(255, 69, 0, 0.4);
+}
+
+/* ─── Panel toggle button ─── */
+#panel-toggle {
+    position: fixed;
+    top: 10px;
+    left: 308px;
+    z-index: 100;
+    width: 32px;
+    height: 32px;
+    background: #12121e;
+    border: 1px solid #ff4500;
+    border-radius: 4px;
+    color: #ff6b35;
+    font-size: 16px;
+    cursor: pointer;
+    transition: left 0.3s ease, background 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+}
+
+#panel-toggle:hover {
+    background: #1e1a30;
+}
+
+#panel-toggle.shifted {
+    left: 10px;
+}
+
+/* ─── Canvas container ─── */
+#canvas-container {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+#webgl-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ─── WebGL error overlay ─── */
+#webgl-error {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #0a0a12;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    text-align: center;
+    padding: 24px;
+}
+
+#webgl-error h2 {
+    color: #ff4500;
+    margin-bottom: 16px;
+    font-size: 26px;
+}
+
+#webgl-error p {
+    color: #999;
+    font-size: 15px;
+    max-width: 480px;
+    line-height: 1.5;
+}
+
+/* ─── Scrollbar ─── */
+#panel::-webkit-scrollbar,
+#gui-container::-webkit-scrollbar {
+    width: 5px;
+}
+
+#panel::-webkit-scrollbar-track,
+#gui-container::-webkit-scrollbar-track {
+    background: #12121e;
+}
+
+#panel::-webkit-scrollbar-thumb,
+#gui-container::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+
+#panel::-webkit-scrollbar-thumb:hover,
+#gui-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
